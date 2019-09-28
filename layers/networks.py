@@ -19,7 +19,6 @@ def make_encoder(y, latent_d, hidden_size=(500, 500)):
         log_covariance_diag=net[..., latent_d:],
         name="encoder"
     )
-
     return dist
 
 

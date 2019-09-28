@@ -217,17 +217,28 @@ class BasePredict:
         raise NotImplementedError
 
     @staticmethod
-    def plot_1d_results(results_dir, y_data, model_out_dist, model_in, sess, batch_size, iters, num_samples=500):
+    def plot_1d_results(results_dir,
+                        x_data,
+                        y_data,
+                        model_out_dist,
+                        model_in_x,
+                        model_in_y,
+                        sess,
+                        batch_size,
+                        iters,
+                        num_samples=500):
+
         y_model = None
         y_model_mean = None
         y_model_std = None
         for i in range(iters):
-            batch = y_data[i * batch_size:(i + 1) * batch_size]
+            batch_x = x_data[i * batch_size:(i + 1) * batch_size]
+            batch_y = y_data[i * batch_size:(i + 1) * batch_size]
             batch_model, batch_model_mean, batch_model_std = \
                 sess.run((model_out_dist.sample(num_samples),
                           model_out_dist.mean(),
                           model_out_dist.stddev()),
-                         feed_dict={model_in: batch})
+                         feed_dict={model_in_x: batch_x, model_in_y: batch_y})
             if y_model_mean is None:
                 y_model = batch_model
                 y_model_mean = batch_model_mean
@@ -240,15 +251,16 @@ class BasePredict:
         y_stoch_mean = np.mean(y_model, axis=0)
         y_stoch_std = np.std(y_model, axis=0)
 
-        data = {"x": y_data[:, 0],
-                "y_data": y_data[:, 1],
-                "y_model_mean": y_model_mean[:, 1],
-                "y_model_std_up": y_model_mean[:, 1] + y_model_std[:, 1],
-                "y_model_std_down": y_model_mean[:, 1] - y_model_std[:, 1],
-                "y_stoch_mean": y_stoch_mean[:, 1],
-                "y_stoch_std_up": y_stoch_mean[:, 1] + y_stoch_std[:, 1],
-                "y_stoch_std_down": y_stoch_mean[:, 1] - y_stoch_std[:, 1],
+        data = {"x": x_data,
+                "y_data": y_data,
+                "y_model_mean": y_model_mean,
+                "y_model_std_up": y_model_mean + y_model_std,
+                "y_model_std_down": y_model_mean - y_model_std,
+                "y_stoch_mean": y_stoch_mean,
+                "y_stoch_std_up": y_stoch_mean + y_stoch_std,
+                "y_stoch_std_down": y_stoch_mean - y_stoch_std,
                 }
+        print(data)
         data = pd.DataFrame.from_dict(data)
         base = alt.Chart(data)
         data_points = base.mark_circle().encode(

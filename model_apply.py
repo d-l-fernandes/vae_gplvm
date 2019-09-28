@@ -72,34 +72,44 @@ def main():
     group.add_argument("-e", "--erase", help="erase summary dirs before training", action="store_true")
     args = parser.parse_args()
 
-    vae_q_list = [2, 10, 20, 40, 100, 500]
-    gp_q_list = [2, 4, 10]
+    # vae_q_list = [2, 10, 20, 40, 100, 500]
+    # gp_q_list = [2, 4, 10]
+    vae_q_list = [3]
+    gp_q_list = [1]
 
-    dataset = "mnist"
+    # dataset = "mnist"
+    dataset = "mixture_gauss"
     # dataset = "cmu_walk"
     # dataset = "mocap"
     # dataset = "celebA"
     # dataset = "dual_moon"
     # dataset = "spiral_3d"
 
-    model_name = "vae_gplvm"
+    # model_name = "vae_gplvm"
+    model_name = "vae_gplvm_regression"
 
     parent_folder = f"results/{model_name}/{dataset}"
 
     # Decoder architecture
-    # architecture = "bayes"
-    architecture = "concrete"
-    # architecture = "regular"
+    # architecture = "bayes_dense"
+    # architecture = "bayes_conv"
+    # architecture = "concrete"
+    architecture = "regular"
 
-    # activation = "softplus"
-    activation = "sigmoid"
+    activation = "softplus"
+    # activation = "sigmoid"
     # activation = "tanh"
     # activation = "relu"
 
     if architecture == "bayes_dense":
         # Bayes hidden_layers
+        # architecture_params = {
+        #     "hidden_size": (300, 300)
+        # }
+
+        # For regression
         architecture_params = {
-            "hidden_size": (20, 20)
+            "hidden_size": (5, 5)
         }
     elif architecture == "bayes_conv":
         architecture_params = {
@@ -110,17 +120,27 @@ def main():
         }
     else:
         # Normal NN hidden layers
+        # architecture_params = {
+        #     "hidden_size": (300, 300)
+        # }
+
+        # For regression
         architecture_params = {
-            "hidden_size": (500, 500)
+            "hidden_size": (5, 5)
         }
 
     parent_folder += f"/{architecture}/{activation}"
 
-    encoder_hidden_size = (500, 500)
+    encoder_hidden_size = (300, 300)
 
-    model = models.VAEGPLVMModel
-    trainer = trainers.VAEGPLVMTrainer
-    predictor = predictors.VAEGPLVMPredictor
+    if model_name == "vae_gplvm":
+        model = models.VAEGPLVMModel
+        trainer = trainers.VAEGPLVMTrainer
+        predictor = predictors.VAEGPLVMPredictor
+    else:
+        model = models.VAEGPLVMRegressionModel
+        trainer = trainers.VAEGPLVMRegressionTrainer
+        predictor = predictors.VAEGPLVMRegressionPredictor
 
     for vae_q in vae_q_list:
         for gp_q in gp_q_list:
@@ -149,6 +169,8 @@ def main():
             data = None
             if dataset == "mnist":
                 data = dg.DataGeneratorMNIST(config)
+            elif dataset == "mixture_gauss":
+                data = dg.DataGeneratorMixtureGaussians(config)
             elif dataset == "mocap":
                 data = dg.DataGeneratorMocap(config)
             elif dataset == "cmu_walk":

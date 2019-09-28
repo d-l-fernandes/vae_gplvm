@@ -209,16 +209,19 @@ class OrthogonallyDecoupledGP:
 
             if diag_covariance:
                 delta_cov = tf.reduce_sum(aux_matrix2 * aux_matrix3, 1) # For diagonal
-                s = tf.expand_dims(tf.matrix_diag_part(k_x_x), 0) + \
-                    delta_cov + tf.exp(self.log_noise_variance) * tf.eye(tf.shape(k_x_x)[-1], dtype=self.dtype)
+                s = tf.matrix_diag_part(k_x_x) + delta_cov + tf.exp(self.log_noise_variance)
+                likelihood = mvg_dist.MultivariateNormalLogDiag(
+                    tf.transpose(mu_gamma_beta),
+                    tf.math.log(s),
+                    name="likelihood"
+                )
             else:
                 delta_cov = tf.matmul(aux_matrix2, aux_matrix3, transpose_a=True)
                 s = k_x_x + delta_cov + tf.exp(self.log_noise_variance) * tf.eye(tf.shape(k_x_x)[-1], dtype=self.dtype)
-
-        likelihood = mvg_dist.MultivariateNormalTriLLogDiagonal(
-            tf.transpose(mu_gamma_beta),
-            tfd.matrix_diag_transform(tf.linalg.cholesky(s), tf.math.log),
-            name="likelihood"
-        )
+                likelihood = mvg_dist.MultivariateNormalTriLLogDiagonal(
+                    tf.transpose(mu_gamma_beta),
+                    tfd.matrix_diag_transform(tf.linalg.cholesky(s), tf.math.log),
+                    name="likelihood"
+                )
 
         return likelihood

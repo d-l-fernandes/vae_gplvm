@@ -18,7 +18,12 @@ def config_dict(parent_folder, model, gp_q, vae_q, dataset):
         if model == "vae_gplvm":
             config["learning_rate_kernels"] = 0.001
             config["learning_rate_global"] = 0.01
-            config["learning_rate_mlp"] = 0.005
+            config["learning_rate_mlp"] = 0.001
+        # Training parameters
+        if model == "vae_gplvm_regression":
+            config["learning_rate_kernels"] = 0.001
+            config["learning_rate_global"] = 0.01
+            config["learning_rate_mlp"] = 0.001
 
     # Need to be updated
     # elif dataset == "mocap":
@@ -43,17 +48,29 @@ def config_dict(parent_folder, model, gp_q, vae_q, dataset):
     #         "learning_rate_local": 0.01,
     #         "learning_rate_global": 0.01
     #     }
-    # elif dataset == "mixture_gauss":
-    #     config = {
-    #         "output_distribution": "gaussian",
-    #         "batch_size": 50,
-    #         "num_data_points": 1000,
-    #         "state_size": [2],
-    #         "label_latent_manifold": False,
-    #         "plot_dimensions": 1,
-    #         "learning_rate_local": 0.01,
-    #         "learning_rate_global": 0.01
-    #     }
+    elif dataset == "mixture_gauss":
+        config = {
+            "output_distribution": "gaussian",
+            "batch_size": 50,
+            "num_data_points": 1000,
+            "state_size": [1],
+            "label_latent_manifold": False,
+            "plot_dimensions": 1,
+            "plot_all": False,
+            # Number of inducing points for GP
+            "num_ind_points_beta": 30,
+            "num_ind_points_gamma": 80,
+        }
+        # Training parameters
+        if model == "vae_gplvm":
+            config["learning_rate_kernels"] = 0.001
+            config["learning_rate_global"] = 0.01
+            config["learning_rate_mlp"] = 0.001
+        # Training parameters
+        if model == "vae_gplvm_regression":
+            config["learning_rate_kernels"] = 0.001
+            config["learning_rate_global"] = 0.01
+            config["learning_rate_mlp"] = 0.001
     # elif dataset == "celebA":
     #     config = {
     #         "output_distribution": "bernoulli",
@@ -114,18 +131,21 @@ def config_dict(parent_folder, model, gp_q, vae_q, dataset):
     config["gp_q"] = gp_q
     config["vae_q"] = vae_q
     # Training iterations
-    config["global_iterations"] = 1
-    config["pretraining_iterations"] = 1
+    config["global_iterations"] = 10
+    config["pretraining_iterations"] = 2
     # Max training epochs
-    config["num_epochs"] = 300
-    config["epochs_mlp"] = 30
+    if model == "vae_gplvm":
+        config["num_epochs"] = 200
+        config["epochs_mlp"] = 10
+    else:
+        config["num_epochs"] = 10
     # Number of draws used in marginal KL calculation and to get the test metrics
     config["num_draws"] = 240
     # Number of points in the X latent space from which to get reconstructed images
     config["num_plot_x_points"] = 30
     config["num_geodesics"] = 5
     # Max value in each dimension X latent space from which to generate images
-    config["max_x_value"] = 1.5
+    config["max_x_value"] = 2
     # Number of iterations per epoch
     config["num_iter_per_epoch"] = config["num_data_points"] // config["batch_size"]
 

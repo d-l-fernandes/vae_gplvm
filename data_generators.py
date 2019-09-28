@@ -339,3 +339,48 @@ class DataGeneratorSpiral3D(bm.BaseDataGenerator):
         axis.get_xaxis().set_visible(False)
         axis.get_yaxis().set_visible(False)
 
+
+# Only used for regression
+class DataGeneratorMixtureGaussians(bm.BaseDataGenerator):
+    def __init__(self, config):
+        super(DataGeneratorMixtureGaussians, self).__init__(config)
+        # load data here
+        min_x = -10
+        max_x = 10
+        train_share = 0.5
+        num_points = np.ceil(self.config["num_data_points"] / train_share).astype(int)
+
+        mu_list = [-9, -6, -3, 0, 3, 6, 9]
+        normal_scale = 3
+
+        slope = 0.1
+        origin = 3
+
+        x = np.expand_dims(np.linspace(min_x, max_x, num_points), axis=-1)
+        y = slope * x + origin
+
+        for mu in mu_list:
+            y += normal_scale * stats.norm.pdf(x, mu)
+
+        if self.config["gp_q"] > 1:
+            random_dims = np.random.normal(size=(num_points, self.config["gp_q"]-1))
+            y = np.hstack((np.expand_dims(y, axis=-1), random_dims))
+
+        self.input_train_y, self.input_test_y, self.input_train_x, self.input_test_x = \
+            train_test_split(y, x, train_size=train_share)
+
+        self.input_train_non_bin = self.input_train_y
+
+        # self.input_train_pca = self.pca_transform(self.input_train, self.config["gp_q"])
+        self.input_train_pca = self.input_train_x
+
+    def select_batch_generator(self, phase):
+        if phase == "training":
+            while True:
+                idx = np.random.choice(self.config["num_data_points"], self.b_size)
+                yield self.input_train_y[idx], self.input_train_pca[idx]
+        elif phase == "testing_y":
+            for i in range(self.num_batches):
+                yield self.input_train_y[i * self.b_size:(i+1) * self.b_size], \
+                      self.input_train_pca[i * self.b_size:(i+1) * self.b_size], \
+                      self.input_train_non_bin[i * self.b_size:(i+1) * self.b_size]

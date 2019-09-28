@@ -129,7 +129,7 @@ def multivariate_normal_gamma_precision_fn():
 
     class InverseGammaLogProb(tf.keras.regularizers.Regularizer):
 
-        def __init__(self, prior_a=1., prior_b=0.5):
+        def __init__(self, prior_a=1., prior_b=10.):
             self.dist = mvg_dist.InverseGamma(concentration=prior_a, rate=prior_b)
 
         def __call__(self, x):
@@ -139,13 +139,16 @@ def multivariate_normal_gamma_precision_fn():
     def _fn(dtype, shape, name, trainable, add_variable_fn):
         log_alphas = add_variable_fn(
             name=name + '_log_alphas',
-            shape=shape,
+            # shape=shape,
+            shape=[1, 1],
             initializer=tf.keras.initializers.zeros(),
             regularizer=InverseGammaLogProb(),
             constraint=None,
             dtype=dtype,
             trainable=trainable)
-        dist = mvg_dist.MultivariateNormalLogDiag(tf.zeros(shape, dtype=dtype), log_alphas)
+
+        log_alphas_tiled = tf.tile(log_alphas, [shape[0], shape[1]])
+        dist = mvg_dist.MultivariateNormalLogDiag(tf.zeros(shape, dtype=dtype), log_alphas_tiled)
         batch_ndims = tf.size(dist.batch_shape_tensor())
         final_dist = tfd.Independent(dist, reinterpreted_batch_ndims=batch_ndims)
         return final_dist
