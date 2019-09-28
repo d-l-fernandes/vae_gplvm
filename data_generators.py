@@ -364,7 +364,7 @@ class DataGeneratorMixtureGaussians(bm.BaseDataGenerator):
 
         if self.config["gp_q"] > 1:
             random_dims = np.random.normal(size=(num_points, self.config["gp_q"]-1))
-            y = np.hstack((np.expand_dims(y, axis=-1), random_dims))
+            x = np.hstack((np.expand_dims(x, axis=-1), random_dims))
 
         self.input_train_y, self.input_test_y, self.input_train_x, self.input_test_x = \
             train_test_split(y, x, train_size=train_share)

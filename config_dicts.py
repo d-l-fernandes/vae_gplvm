@@ -58,8 +58,8 @@ def config_dict(parent_folder, model, gp_q, vae_q, dataset):
             "plot_dimensions": 1,
             "plot_all": False,
             # Number of inducing points for GP
-            "num_ind_points_beta": 30,
-            "num_ind_points_gamma": 80,
+            "num_ind_points_beta": 10,
+            "num_ind_points_gamma": 20,
         }
         # Training parameters
         if model == "vae_gplvm":
@@ -130,14 +130,15 @@ def config_dict(parent_folder, model, gp_q, vae_q, dataset):
     # Latent dimensions
     config["gp_q"] = gp_q
     config["vae_q"] = vae_q
-    # Training iterations
-    config["global_iterations"] = 10
-    config["pretraining_iterations"] = 2
-    # Max training epochs
     if model == "vae_gplvm":
+        # Training iterations
+        config["global_iterations"] = 10
+        config["pretraining_iterations"] = 2
+        # Max training epochs
         config["num_epochs"] = 200
         config["epochs_mlp"] = 10
     else:
+        config["global_iterations"] = 1
         config["num_epochs"] = 10
     # Number of draws used in marginal KL calculation and to get the test metrics
     config["num_draws"] = 240
