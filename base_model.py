@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from scipy.integrate import solve_bvp
+from scipy.signal import savgol_filter
 from sklearn.decomposition import PCA
 import tensorflow as tf
 
@@ -140,7 +141,7 @@ class BaseTrain:
         self.config = config
         self.sess = sess
         self.data = data
-        self.max_epoch_diff = 20  # The training will stop if the objective will not improve after this many epochs
+        self.max_epoch_diff = 40  # The training will stop if the objective will not improve after this many epochs
         self.cur_epoch_diff = 0
         self.metric = -np.inf  # Current best value of objective
         self.init = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
@@ -220,25 +221,29 @@ class BasePredict:
     def plot_1d_results(results_dir,
                         x_data,
                         y_data,
+                        x_test,
                         model_out_dist,
                         model_in_x,
                         model_in_y,
                         sess,
                         batch_size,
-                        iters,
+                        num_test_points,
                         num_samples=500):
 
         y_model = None
         y_model_mean = None
         y_model_std = None
+
+        iters = num_test_points // batch_size
+
         for i in range(iters):
-            batch_x = x_data[i * batch_size:(i + 1) * batch_size]
-            batch_y = y_data[i * batch_size:(i + 1) * batch_size]
+            batch_x = x_test[i * batch_size:(i + 1) * batch_size]
+            # batch_y = y_data[i * batch_size:(i + 1) * batch_size]
             batch_model, batch_model_mean, batch_model_std = \
                 sess.run((model_out_dist.sample(num_samples),
                           model_out_dist.mean(),
                           model_out_dist.stddev()),
-                         feed_dict={model_in_x: batch_x, model_in_y: batch_y})
+                         feed_dict={model_in_x: batch_x})
             if y_model_mean is None:
                 y_model = batch_model
                 y_model_mean = batch_model_mean
@@ -248,50 +253,62 @@ class BasePredict:
                 y_model_mean = np.concatenate((y_model_mean, batch_model_mean), axis=0)
                 y_model_std = np.concatenate((y_model_std, batch_model_std), axis=0)
 
+        # For smoothing out the points
+        # y_model_mean = savgol_filter(y_model_mean, 27, 3, axis=0, mode="nearest")
+        # y_model_std = savgol_filter(y_model_std, 27, 3, axis=0, mode="nearest")
         y_stoch_mean = np.mean(y_model, axis=0)
         y_stoch_std = np.std(y_model, axis=0)
 
-        data = {"x": x_data,
-                "y_data": y_data,
-                "y_model_mean": y_model_mean,
-                "y_model_std_up": y_model_mean + y_model_std,
-                "y_model_std_down": y_model_mean - y_model_std,
-                "y_stoch_mean": y_stoch_mean,
-                "y_stoch_std_up": y_stoch_mean + y_stoch_std,
-                "y_stoch_std_down": y_stoch_mean - y_stoch_std,
-                }
-        print(data)
-        data = pd.DataFrame.from_dict(data)
-        base = alt.Chart(data)
-        data_points = base.mark_circle().encode(
+        data_train = {"x": x_data[:, 0],
+                      "y_data": y_data[:, 0]}
+
+        data_test = {"x": x_test[:, 0],
+                     "y_model_mean": y_model_mean[:, 0],
+                     "y_model_std_up": y_model_mean[:, 0] + y_model_std[:, 0],
+                     "y_model_std_down": y_model_mean[:, 0] - y_model_std[:, 0],
+                     "y_stoch_mean": y_stoch_mean[:, 0],
+                     "y_stoch_std_up": y_stoch_mean[:, 0] + y_stoch_std[:, 0],
+                     "y_stoch_std_down": y_stoch_mean[:, 0] - y_stoch_std[:, 0],
+                     }
+
+        index_train = np.arange(0, x_data.shape[0])
+        data_train = pd.DataFrame(data_train, index=index_train)
+
+        index_test = np.arange(0, x_test.shape[0])
+        data_test = pd.DataFrame(data_test, index=index_test)
+        base_train = alt.Chart(data_train)
+        base_test = alt.Chart(data_test)
+
+        data_points = base_train.mark_circle().encode(
             x="x:Q",
             y="y_data:Q",
             color=alt.value('black'),
             size=alt.value(5),
         )
-        model_mean = base.mark_line().encode(
+        model_mean = base_test.mark_line().encode(
             x="x:Q",
             y="y_model_mean:Q",
             color=alt.value("blue")
         )
-        model_std = base.mark_area(opacity=0.3).encode(
+        model_std = base_test.mark_area(opacity=0.3).encode(
             x="x:Q",
             y=alt.Y('y_model_std_up', title=""),
             y2='y_model_std_down',
             color=alt.value("blue")
         )
-        stoch_mean = base.mark_line().encode(
+        stoch_mean = base_test.mark_line().encode(
             x="x:Q",
             y="y_stoch_mean:Q",
             color=alt.value("red")
         )
-        stoch_std = base.mark_area(opacity=0.3).encode(
+        stoch_std = base_test.mark_area(opacity=0.3).encode(
             x="x:Q",
             y=alt.Y('y_stoch_std_up', title=""),
             y2='y_stoch_std_down',
             color=alt.value("red")
         )
-        chart = alt.layer(model_std, model_mean, stoch_std, stoch_mean, data_points).interactive()
+        # chart = alt.layer(model_std, model_mean, stoch_std, stoch_mean, data_points).interactive()
+        chart = alt.layer(model_std, model_mean, data_points).interactive()
         chart.save(os.path.join(results_dir, "data.html"))
 
     @staticmethod

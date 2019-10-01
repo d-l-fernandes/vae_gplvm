@@ -141,19 +141,21 @@ class VAEGPLVMRegressionTrainer(bm.BaseTrain):
         batch_y, batch_x = next(self.batch_gen)
         feed_dict = {self.model.t_y: batch_y, self.model.t_x: batch_x}
 
-        cost = None
-        reco = None
-        kl_global = None
         for i in range(self.config["global_iterations"]):
-            _, _, _, cost, reco, kl_global = \
+            _, _ = \
                 self.sess.run((
                     self.model.opt_trainer_global,
-                    self.model.opt_trainer_kernels,
-                    self.model.opt_trainer_decoder,
-                    self.model.t_avg_elbo_loss,
-                    self.model.t_avg_reco,
-                    self.model.t_avg_kl_global),
+                    self.model.opt_trainer_kernels),
                     feed_dict)
+
+        _,  cost, reco, kl_global = \
+            self.sess.run((
+                self.model.opt_trainer_decoder,
+                self.model.t_avg_elbo_loss,
+                self.model.t_avg_reco,
+                self.model.t_avg_kl_global),
+                feed_dict)
+
         metrics = {
             "elbo": cost,
             "reco": reco,

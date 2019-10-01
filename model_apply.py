@@ -74,7 +74,7 @@ def main():
 
     # vae_q_list = [2, 10, 20, 40, 100, 500]
     # gp_q_list = [2, 4, 10]
-    vae_q_list = [3]
+    vae_q_list = [10]
     gp_q_list = [1]
 
     # dataset = "mnist"
@@ -96,8 +96,8 @@ def main():
     # architecture = "concrete"
     architecture = "regular"
 
-    activation = "softplus"
-    # activation = "sigmoid"
+    # activation = "softplus"
+    activation = "sigmoid"
     # activation = "tanh"
     # activation = "relu"
 
@@ -109,7 +109,7 @@ def main():
 
         # For regression
         architecture_params = {
-            "hidden_size": (5, 5)
+            "hidden_size": (50, 50)
         }
     elif architecture == "bayes_conv":
         architecture_params = {
@@ -126,7 +126,7 @@ def main():
 
         # For regression
         architecture_params = {
-            "hidden_size": (5, 5)
+            "hidden_size": (50, 50)
         }
 
     parent_folder += f"/{architecture}/{activation}"

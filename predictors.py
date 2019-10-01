@@ -356,12 +356,13 @@ class VAEGPLVMRegressionPredictor(bm.BasePredict):
             self.plot_1d_results(self.config["results_dir"],
                                  self.data.input_train_pca,
                                  self.data.input_train_y,
+                                 self.data.input_test_pca,
                                  self.model.t_decoder,
                                  self.model.t_x,
                                  self.model.t_y,
                                  self.sess,
                                  self.config["batch_size"],
-                                 self.config["num_iter_per_epoch"])
+                                 self.data.test_points)
 
         summaries_dict = self.create_summaries_dict(self.metrics)
 

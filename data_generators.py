@@ -347,6 +347,11 @@ class DataGeneratorMixtureGaussians(bm.BaseDataGenerator):
         # load data here
         min_x = -10
         max_x = 10
+
+        min_x_test = -20
+        max_x_test = 20
+        self.test_points = 500
+
         train_share = 0.5
         num_points = np.ceil(self.config["num_data_points"] / train_share).astype(int)
 
@@ -357,6 +362,8 @@ class DataGeneratorMixtureGaussians(bm.BaseDataGenerator):
         origin = 3
 
         x = np.expand_dims(np.linspace(min_x, max_x, num_points), axis=-1)
+        x_test = np.expand_dims(np.linspace(min_x_test, max_x_test, self.test_points), axis=-1)
+
         y = slope * x + origin
 
         for mu in mu_list:
@@ -365,6 +372,8 @@ class DataGeneratorMixtureGaussians(bm.BaseDataGenerator):
         if self.config["gp_q"] > 1:
             random_dims = np.random.normal(size=(num_points, self.config["gp_q"]-1))
             x = np.hstack((np.expand_dims(x, axis=-1), random_dims))
+            random_dims = np.random.normal(size=(num_points, self.config["gp_q"]-1))
+            x_test = np.hstack((np.expand_dims(x_test, axis=-1), random_dims))
 
         self.input_train_y, self.input_test_y, self.input_train_x, self.input_test_x = \
             train_test_split(y, x, train_size=train_share)
@@ -373,6 +382,8 @@ class DataGeneratorMixtureGaussians(bm.BaseDataGenerator):
 
         # self.input_train_pca = self.pca_transform(self.input_train, self.config["gp_q"])
         self.input_train_pca = self.input_train_x
+
+        self.input_test_pca = x_test
 
     def select_batch_generator(self, phase):
         if phase == "training":
